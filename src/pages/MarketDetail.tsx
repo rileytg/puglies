@@ -4,17 +4,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { OrderBook } from "@/components/trading/OrderBook";
+import { PriceChart, type PriceDataPoint } from "@/components/trading/PriceChart";
 import { formatPrice, formatCompactUsd } from "@/lib/utils";
 import { getMarket } from "@/lib/tauri";
+import { useWebSocketStore } from "@/stores/websocket";
+import { useOrderBookStore } from "@/stores/orderbook";
+import { useTauriEvent } from "@/hooks/useTauriEvents";
 import { ArrowLeft, ExternalLink, Clock, DollarSign, Droplets } from "lucide-react";
-import type { Market } from "@/lib/types";
+import type { Market, PriceUpdate } from "@/lib/types";
+import type { Time } from "lightweight-charts";
 
 export function MarketDetail() {
   const { conditionId } = useParams<{ conditionId: string }>();
   const [market, setMarket] = useState<Market | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [priceHistory, setPriceHistory] = useState<PriceDataPoint[]>([]);
+  const [livePrice, setLivePrice] = useState<number | null>(null);
 
+  const { connectToClob, disconnectFromClob, connectToRtds, disconnectFromRtds } =
+    useWebSocketStore();
+  const getOrderBook = useOrderBookStore((state) => state.getOrderBook);
+
+  // Fetch market data
   useEffect(() => {
     async function fetchMarket() {
       if (!conditionId) return;
@@ -22,6 +35,13 @@ export function MarketDetail() {
       try {
         const data = await getMarket(conditionId);
         setMarket(data);
+
+        // Initialize price history with current price
+        const yesToken = data.tokens.find((t) => t.outcome === "Yes") ?? data.tokens[0];
+        if (yesToken) {
+          const now = Math.floor(Date.now() / 1000) as Time;
+          setPriceHistory([{ time: now, value: yesToken.price }]);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch market");
       } finally {
@@ -30,6 +50,35 @@ export function MarketDetail() {
     }
     fetchMarket();
   }, [conditionId]);
+
+  // Connect to WebSocket when market is loaded
+  useEffect(() => {
+    if (!market) return;
+
+    const tokenIds = market.tokens.map((t) => t.token_id);
+    connectToClob(tokenIds);
+    connectToRtds([market.condition_id]);
+
+    return () => {
+      disconnectFromClob();
+      disconnectFromRtds();
+    };
+  }, [market, connectToClob, disconnectFromClob, connectToRtds, disconnectFromRtds]);
+
+  // Listen for price updates
+  useTauriEvent<PriceUpdate>("price_update", (update) => {
+    if (update.market === market?.condition_id) {
+      setLivePrice(update.price);
+      const time = (update.timestamp
+        ? update.timestamp / 1000
+        : Date.now() / 1000) as Time;
+      setPriceHistory((prev) => [...prev.slice(-999), { time, value: update.price }]);
+    }
+  });
+
+  // Get order book for the Yes token
+  const yesTokenId = market?.tokens.find((t) => t.outcome === "Yes")?.token_id;
+  const orderBookData = yesTokenId ? getOrderBook(yesTokenId) : undefined;
 
   if (isLoading) {
     return (
@@ -60,7 +109,7 @@ export function MarketDetail() {
 
   const yesToken = market.tokens.find((t) => t.outcome === "Yes") ?? market.tokens[0];
   const noToken = market.tokens.find((t) => t.outcome === "No") ?? market.tokens[1];
-  const yesPrice = yesToken?.price ?? 0;
+  const yesPrice = livePrice ?? yesToken?.price ?? 0;
   const noPrice = noToken?.price ?? 1 - yesPrice;
 
   return (
@@ -199,6 +248,46 @@ export function MarketDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* Chart and Order Book */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Price Chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Price History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {priceHistory.length > 0 ? (
+              <PriceChart data={priceHistory} height={300} />
+            ) : (
+              <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+                Waiting for price data...
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Order Book */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Book (Yes)</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {orderBookData ? (
+              <OrderBook
+                bids={orderBookData.bids}
+                asks={orderBookData.asks}
+                maxLevels={8}
+                className="h-[300px]"
+              />
+            ) : (
+              <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+                Connecting to order book...
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Trading placeholder */}
       <Card className="border-dashed">

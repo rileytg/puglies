@@ -53,50 +53,50 @@
 
 ---
 
-## Phase 2: Real-Time Data
+## Phase 2: Real-Time Data ✓
 
 ### WebSocket Manager (Rust)
-- [ ] Create `websocket/manager.rs`
-- [ ] Implement connection state machine
-- [ ] Add exponential backoff reconnection
-- [ ] Create message parsing and routing
+- [x] Create `websocket/manager.rs`
+- [x] Implement connection state machine
+- [x] Add exponential backoff reconnection
+- [x] Create message parsing and routing
 
 ### RTDS WebSocket
-- [ ] Create `websocket/rtds.rs`
-- [ ] Implement connection to `wss://ws-live-data.polymarket.com`
-- [ ] Parse market activity messages
-- [ ] Parse trade messages
-- [ ] Emit `price_update` Tauri events
-- [ ] Emit `trade_update` Tauri events
+- [x] Create `websocket/rtds.rs`
+- [x] Implement connection to `wss://ws-live-data.polymarket.com`
+- [x] Parse market activity messages
+- [x] Parse trade messages
+- [x] Emit `price_update` Tauri events
+- [x] Emit `trade_update` Tauri events
 
 ### CLOB WebSocket
-- [ ] Create `websocket/clob.rs`
-- [ ] Implement connection to CLOB WS
-- [ ] Subscribe to order book channels
-- [ ] Parse order book snapshot messages
-- [ ] Parse order book delta messages
-- [ ] Emit `orderbook_update` Tauri events
+- [x] Create `websocket/clob.rs`
+- [x] Implement connection to CLOB WS
+- [x] Subscribe to order book channels
+- [x] Parse order book snapshot messages
+- [x] Parse order book delta messages
+- [x] Emit `orderbook_update` Tauri events
 
 ### Frontend - WebSocket Integration
-- [ ] Create `useTauriEvents` hook
-- [ ] Create `websocket` Zustand store for connection status
-- [ ] Create `orderbook` Zustand store
+- [x] Create `useTauriEvents` hook
+- [x] Create `websocket` Zustand store for connection status
+- [x] Create `orderbook` Zustand store
 - [ ] Update `MarketCard` with live prices
-- [ ] Add connection status indicator to header
+- [x] Add connection status indicator to header
 
 ### Frontend - Order Book
-- [ ] Create `OrderBook` component
-- [ ] Implement depth visualization (horizontal bars)
-- [ ] Add bid/ask spread display
+- [x] Create `OrderBook` component
+- [x] Implement depth visualization (horizontal bars)
+- [x] Add bid/ask spread display
 - [ ] Add price level highlighting
 
 ### Frontend - Charts
-- [ ] Install Lightweight Charts
-- [ ] Create `PriceChart` component
+- [x] Install Lightweight Charts
+- [x] Create `PriceChart` component
 - [ ] Implement candlestick/line chart toggle
 - [ ] Add time range selector (1h, 24h, 7d, 30d)
 - [ ] Wire up historical data fetching
-- [ ] Add real-time price updates to chart
+- [x] Add real-time price updates to chart
 
 ### Phase 2 Verification
 - [ ] Prices update in real-time

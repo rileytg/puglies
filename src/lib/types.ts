@@ -111,23 +111,58 @@ export interface Order {
   expiration?: string;
 }
 
-// WebSocket message types
+// WebSocket message types (from Rust backend)
 export interface PriceUpdate {
-  condition_id: string;
-  token_id: string;
+  msg_type?: string;
+  market: string;
   price: number;
-  timestamp: string;
+  timestamp?: number;
 }
 
-export interface OrderBookUpdate {
+export interface TradeUpdate {
+  msg_type?: string;
   market: string;
+  price: number;
+  size: number;
+  side: string;
+  timestamp?: number;
+}
+
+export interface OrderBookSnapshot {
+  event_type?: string;
   asset_id: string;
+  market?: string;
+  hash?: string;
+  timestamp?: number;
   bids: OrderBookLevel[];
   asks: OrderBookLevel[];
 }
 
+export interface OrderBookDelta {
+  event_type?: string;
+  asset_id: string;
+  market?: string;
+  side: string;
+  price: string;
+  size: string;
+  timestamp?: number;
+}
+
+export interface ClobTrade {
+  event_type?: string;
+  asset_id: string;
+  market?: string;
+  price: string;
+  size: string;
+  side: string;
+  timestamp?: number;
+  trade_id?: string;
+}
+
 // App state types
+export type ConnectionStateValue = "disconnected" | "connecting" | "connected" | "reconnecting" | "failed";
+
 export interface ConnectionStatus {
-  clob: "connected" | "connecting" | "disconnected";
-  rtds: "connected" | "connecting" | "disconnected";
+  clob: ConnectionStateValue;
+  rtds: ConnectionStateValue;
 }

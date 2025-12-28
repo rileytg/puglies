@@ -86,14 +86,20 @@ async fn get_markets(limit: Option<u32>) -> Result<Vec<Market>, AppError> {
 const markets = await invoke<Market[]>('get_markets', { limit: 50 });
 ```
 
-## Current Phase: 2 (Real-Time Data)
+## Current Phase: 3 (Authentication)
 
-Focus areas:
-1. WebSocket manager with reconnection logic
-2. RTDS WebSocket for live market prices
-3. CLOB WebSocket for order book depth
-4. Frontend event hooks and stores
-5. Price charts with Lightweight Charts
+Phase 2 (Real-Time Data) completed:
+- WebSocket manager with exponential backoff reconnection
+- RTDS WebSocket for live market prices
+- CLOB WebSocket for order book depth
+- Frontend event hooks, stores, OrderBook and PriceChart components
+
+Phase 3 Focus areas:
+1. EIP-712 signing for Polymarket API authentication
+2. HMAC authentication for CLOB REST API
+3. API key derivation flow
+4. Secure credential storage using OS keyring
+5. Portfolio and positions display
 
 ## External APIs
 

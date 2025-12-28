@@ -3,7 +3,7 @@ use serde::Deserialize;
 use tracing::{debug, instrument};
 
 use crate::error::AppError;
-use crate::types::{Event, Market};
+use crate::types::{Event, Market, RawMarket};
 
 const GAMMA_API_BASE: &str = "https://gamma-api.polymarket.com";
 
@@ -14,11 +14,7 @@ pub struct GammaClient {
     base_url: String,
 }
 
-#[derive(Debug, Deserialize)]
-struct MarketsResponse(Vec<Market>);
-
-#[derive(Debug, Deserialize)]
-struct EventsResponse(Vec<Event>);
+// AIDEV-NOTE: API returns arrays directly, not wrapped objects
 
 impl GammaClient {
     pub fn new() -> Self {
@@ -60,8 +56,8 @@ impl GammaClient {
             params.push(format!("offset={}", o));
         }
 
-        // Sort by volume descending
-        params.push("order=volume_num".to_string());
+        // Sort by volume descending (API uses camelCase)
+        params.push("order=volumeNum".to_string());
         params.push("ascending=false".to_string());
 
         if !params.is_empty() {
@@ -71,7 +67,19 @@ impl GammaClient {
         debug!("Fetching markets from: {}", url);
 
         let response = self.client.get(&url).send().await?;
-        let markets: Vec<Market> = response.json().await?;
+        let text = response.text().await?;
+
+        let raw_markets: Vec<RawMarket> = match serde_json::from_str(&text) {
+            Ok(m) => m,
+            Err(e) => {
+                tracing::error!("Failed to parse markets: {}", e);
+                tracing::error!("Response text (first 500 chars): {}", &text[..text.len().min(500)]);
+                return Err(AppError::Json(e));
+            }
+        };
+
+        debug!("Parsed {} markets successfully", raw_markets.len());
+        let markets: Vec<Market> = raw_markets.into_iter().map(Market::from).collect();
 
         Ok(markets)
     }
@@ -89,8 +97,8 @@ impl GammaClient {
             return Err(AppError::MarketNotFound(condition_id.to_string()));
         }
 
-        let market: Market = response.json().await?;
-        Ok(market)
+        let raw_market: RawMarket = response.json().await?;
+        Ok(Market::from(raw_market))
     }
 
     /// Fetch events (market collections)
@@ -137,7 +145,8 @@ impl GammaClient {
         debug!("Searching markets: {}", url);
 
         let response = self.client.get(&url).send().await?;
-        let markets: Vec<Market> = response.json().await?;
+        let raw_markets: Vec<RawMarket> = response.json().await?;
+        let markets: Vec<Market> = raw_markets.into_iter().map(Market::from).collect();
 
         Ok(markets)
     }
