@@ -1,55 +1,55 @@
 # PLGUI - Task Checklist
 
-## Phase 1: Foundation
+## Phase 1: Foundation ✓
 
 ### Project Setup
-- [ ] Initialize Tauri v2 project with React template
-- [ ] Configure TypeScript strict mode
-- [ ] Set up Tailwind CSS
-- [ ] Install shadcn/ui and configure components
-- [ ] Set up Zustand
-- [ ] Configure Vite for development
-- [ ] Set up Rust workspace structure
-- [ ] Add Cargo dependencies (reqwest, serde, tokio, thiserror)
-- [ ] Configure Tauri permissions and capabilities
+- [x] Initialize Tauri v2 project with React template
+- [x] Configure TypeScript strict mode
+- [x] Set up Tailwind CSS
+- [x] Install shadcn/ui and configure components
+- [x] Set up Zustand
+- [x] Configure Vite for development
+- [x] Set up Rust workspace structure
+- [x] Add Cargo dependencies (reqwest, serde, tokio, thiserror)
+- [x] Configure Tauri permissions and capabilities
 
 ### Gamma API Client (Rust)
-- [ ] Create `api/gamma.rs` module
-- [ ] Implement `get_markets()` - fetch market list
-- [ ] Implement `get_market(condition_id)` - single market
-- [ ] Implement `get_events()` - event list
-- [ ] Add response types with serde deserialization
-- [ ] Add error handling with thiserror
+- [x] Create `api/gamma.rs` module
+- [x] Implement `get_markets()` - fetch market list
+- [x] Implement `get_market(condition_id)` - single market
+- [x] Implement `get_events()` - event list
+- [x] Add response types with serde deserialization
+- [x] Add error handling with thiserror
 - [ ] Write unit tests for API parsing
 
 ### Tauri Commands
-- [ ] Create `commands/markets.rs`
-- [ ] Implement `get_markets` command
-- [ ] Implement `get_market` command
-- [ ] Implement `search_markets` command
-- [ ] Register commands in `main.rs`
+- [x] Create `commands/markets.rs`
+- [x] Implement `get_markets` command
+- [x] Implement `get_market` command
+- [x] Implement `search_markets` command
+- [x] Register commands in `main.rs`
 
 ### Frontend - Layout
-- [ ] Create `Sidebar` component with navigation
-- [ ] Create `Header` component with status indicators
-- [ ] Create `StatusBar` component
-- [ ] Set up React Router for navigation
-- [ ] Create base layout wrapper
+- [x] Create `Sidebar` component with navigation
+- [x] Create `Header` component with status indicators
+- [x] Create `StatusBar` component
+- [x] Set up React Router for navigation
+- [x] Create base layout wrapper
 
 ### Frontend - Markets
-- [ ] Create `markets` Zustand store
-- [ ] Create `MarketList` component
-- [ ] Create `MarketCard` component
-- [ ] Create `MarketSearch` component with filtering
-- [ ] Create `MarketDetail` page
-- [ ] Wire up Tauri invoke calls
-- [ ] Add loading and error states
+- [x] Create `markets` Zustand store
+- [x] Create `MarketList` component
+- [x] Create `MarketCard` component
+- [x] Create `MarketSearch` component with filtering
+- [x] Create `MarketDetail` page
+- [x] Wire up Tauri invoke calls
+- [x] Add loading and error states
 
 ### Phase 1 Verification
-- [ ] Markets load and display correctly
-- [ ] Search/filter works
-- [ ] Navigation between views works
-- [ ] App builds without errors
+- [x] Markets load and display correctly
+- [x] Search/filter works
+- [x] Navigation between views works
+- [x] App builds without errors
 
 ---
 
