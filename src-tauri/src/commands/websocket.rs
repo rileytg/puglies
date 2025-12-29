@@ -2,8 +2,10 @@
 
 use tauri::State;
 use serde::Serialize;
+
+use polymarket_rs::{ConnectionState, ClobWebSocket, RtdsClient};
 use crate::WebSocketState;
-use crate::websocket::{ConnectionState, RtdsClient, ClobWebSocket};
+use crate::events::TauriEventEmitter;
 
 /// Response for connection status
 #[derive(Debug, Serialize)]
@@ -29,7 +31,7 @@ pub async fn connect_rtds(
     }
 
     // Create and start new connection
-    let mut client = RtdsClient::new(ws_state.manager.clone());
+    let mut client = RtdsClient::<TauriEventEmitter>::new(ws_state.manager.clone());
     client.connect(markets).await;
 
     // Store the new client
@@ -70,7 +72,7 @@ pub async fn connect_clob(
     }
 
     // Create and start new connection
-    let mut client = ClobWebSocket::new(ws_state.manager.clone());
+    let mut client = ClobWebSocket::<TauriEventEmitter>::new(ws_state.manager.clone());
     client.connect(token_ids).await;
 
     // Store the new client

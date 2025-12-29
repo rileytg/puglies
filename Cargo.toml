@@ -1,0 +1,42 @@
+# AIDEV-NOTE: Workspace root - polymarket-rs (core API) + src-tauri (Tauri app)
+[workspace]
+resolver = "2"
+members = ["crates/polymarket-rs", "src-tauri"]
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+
+# Error handling
+thiserror = "1"
+
+# Logging
+tracing = "0.1"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Crypto (for auth signing)
+alloy-primitives = "0.8"
+alloy-signer = "0.8"
+alloy-signer-local = "0.8"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+rand = "0.8"
+
+# WebSocket
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+futures-util = "0.3"
+
+# Utils
+urlencoding = "2"
+parking_lot = "0.12"

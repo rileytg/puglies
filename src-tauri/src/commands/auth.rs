@@ -3,8 +3,7 @@
 
 use tauri::State;
 
-use crate::api::{clob::{Balance, Order, Position}, ClobClient};
-use crate::auth::{AuthStatus, PolymarketSigner};
+use polymarket_rs::{Balance, ClobClient, Order, PolymarketSigner, Position};
 use crate::error::AppError;
 use crate::AuthState;
 
@@ -170,7 +169,7 @@ pub async fn get_balance(state: State<'_, AuthState>) -> Result<Balance, AppErro
         },
         Err(e) => tracing::error!("Balance error: {:?}", e),
     }
-    result
+    result.map_err(AppError::from)
 }
 
 /// Get user's positions (requires Polymarket address, may differ from signing address)
@@ -178,7 +177,7 @@ pub async fn get_balance(state: State<'_, AuthState>) -> Result<Balance, AppErro
 pub async fn get_positions(address: String, state: State<'_, AuthState>) -> Result<Vec<Position>, AppError> {
     // Clone the client to avoid holding the guard across await
     let client = state.clob_client.read().clone();
-    client.get_positions(&address).await
+    client.get_positions(&address).await.map_err(AppError::from)
 }
 
 /// Get user's open orders
@@ -186,5 +185,5 @@ pub async fn get_positions(address: String, state: State<'_, AuthState>) -> Resu
 pub async fn get_orders(state: State<'_, AuthState>) -> Result<Vec<Order>, AppError> {
     // Clone the client to avoid holding the guard across await
     let client = state.clob_client.read().clone();
-    client.get_orders().await
+    client.get_orders().await.map_err(AppError::from)
 }

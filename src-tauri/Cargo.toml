@@ -1,3 +1,4 @@
+# AIDEV-NOTE: Tauri app - uses polymarket-rs for API logic
 [package]
 name = "plgui"
 version = "0.1.0"
@@ -13,50 +14,30 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# Core API library
+polymarket-rs = { path = "../crates/polymarket-rs" }
+
+# Tauri
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
-serde = { version = "1", features = ["derive", "rc"] }
-serde_json = "1"
 
-# HTTP client
-reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+# From workspace
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+chrono.workspace = true
+parking_lot.workspace = true
+reqwest.workspace = true
+rand.workspace = true
 
-# Async runtime
-tokio = { version = "1", features = ["full"] }
-
-# Error handling
-thiserror = "1"
-
-# Logging
-tracing = "0.1"
+# Logging (app-specific)
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-# Utilities
-chrono = { version = "0.4", features = ["serde"] }
-urlencoding = "2"
-
-# WebSocket
-tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
-futures-util = "0.3"
-
-# Parking lot for efficient synchronization
-parking_lot = "0.12"
-
-# Authentication & Crypto
-# AIDEV-NOTE: Using minimal alloy features to avoid serde compatibility issues
-alloy-primitives = "0.8"
-alloy-signer = "0.8"
-alloy-signer-local = "0.8"
-hmac = "0.12"
-sha2 = "0.10"
-hex = "0.4"
-base64 = "0.22"
-rand = "0.8"
-
-# Secure credential storage (fallback)
+# Secure credential storage (app-specific)
 keyring = "3"
 
-# SQLite for local data persistence
+# SQLite for local data persistence (app-specific)
 rusqlite = { version = "0.32", features = ["bundled"] }
 directories = "5"
-

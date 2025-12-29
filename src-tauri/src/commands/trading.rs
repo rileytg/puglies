@@ -3,11 +3,11 @@
 
 use tauri::State;
 
-use crate::api::order::{
-    CancelResponse, OrderParams, OrderSide, OrderType, PlaceOrderResponse,
+use polymarket_rs::api::order::{
+    CancelResponse, OrderParams, OrderSide, PlaceOrderResponse,
     SignatureType, UnsignedOrder,
 };
-use crate::auth::OrderSigner;
+use polymarket_rs::OrderSigner;
 use crate::error::AppError;
 use crate::AuthState;
 
@@ -78,7 +78,7 @@ pub async fn cancel_order(
     tracing::info!("Cancelling order: {}", order_id);
 
     let client = state.clob_client.read().clone();
-    client.cancel_order(&order_id).await
+    client.cancel_order(&order_id).await.map_err(AppError::from)
 }
 
 /// Cancel all open orders
@@ -89,7 +89,7 @@ pub async fn cancel_all_orders(
     tracing::info!("Cancelling all orders");
 
     let client = state.clob_client.read().clone();
-    client.cancel_all_orders().await
+    client.cancel_all_orders().await.map_err(AppError::from)
 }
 
 /// Cancel all orders for a specific market
@@ -101,7 +101,7 @@ pub async fn cancel_market_orders(
     tracing::info!("Cancelling orders for market: {}", market_id);
 
     let client = state.clob_client.read().clone();
-    client.cancel_market_orders(&market_id).await
+    client.cancel_market_orders(&market_id).await.map_err(AppError::from)
 }
 
 /// Build an unsigned order from user-friendly parameters

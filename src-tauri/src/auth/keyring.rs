@@ -3,7 +3,7 @@
 
 use keyring::Entry;
 
-use crate::auth::ApiCredentials;
+use polymarket_rs::ApiCredentials;
 use crate::error::AppError;
 
 const SERVICE_NAME: &str = "plgui-polymarket";

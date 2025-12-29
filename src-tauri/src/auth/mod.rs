@@ -1,13 +1,7 @@
-// AIDEV-NOTE: Auth module handles Polymarket authentication (EIP-712, HMAC, keyring)
+// AIDEV-NOTE: Auth module - app-specific auth concerns
+// All auth types come from polymarket_rs; keyring.rs kept for future secure storage option
 
-mod credentials;
-mod eip712;
-mod hmac;
-mod keyring;
-mod order_eip712;
-
-pub use credentials::{ApiCredentials, AuthStatus};
-pub use eip712::{L1Headers, PolymarketSigner};
-pub use hmac::HmacAuth;
-pub use keyring::CredentialStore;
-pub use order_eip712::OrderSigner;
+// NOTE: keyring.rs exists but is not currently used (we use SQLite via db.rs)
+// Uncomment when ready to use OS keychain for more secure credential storage:
+// mod keyring;
+// pub use keyring::CredentialStore;

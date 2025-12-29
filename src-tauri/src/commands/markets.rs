@@ -1,11 +1,11 @@
+// AIDEV-NOTE: Market commands - fetching market data from Gamma/CLOB APIs
+
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use tracing::{debug, instrument};
 
-use crate::api::{GammaClient, ClobClient};
-use crate::api::clob::PricePoint;
+use polymarket_rs::{Event, GammaClient, Market, PricePoint};
 use crate::error::AppError;
-use crate::types::{Event, Market};
 use crate::AuthState;
 
 // AIDEV-NOTE: Commands are invoked from frontend via invoke("command_name", { args })
@@ -23,6 +23,7 @@ pub async fn get_markets(
     gamma_client
         .get_markets(query.as_deref(), limit, offset)
         .await
+        .map_err(AppError::from)
 }
 
 /// Fetch a single market by internal ID
@@ -33,7 +34,7 @@ pub async fn get_market(
     gamma_client: State<'_, GammaClient>,
     market_id: String,
 ) -> Result<Market, AppError> {
-    gamma_client.get_market(&market_id).await
+    gamma_client.get_market(&market_id).await.map_err(AppError::from)
 }
 
 /// Fetch events (market collections)
@@ -43,7 +44,7 @@ pub async fn get_events(
     gamma_client: State<'_, GammaClient>,
     limit: Option<u32>,
 ) -> Result<Vec<Event>, AppError> {
-    gamma_client.get_events(limit).await
+    gamma_client.get_events(limit).await.map_err(AppError::from)
 }
 
 /// Search markets by text query
@@ -53,7 +54,7 @@ pub async fn search_markets(
     gamma_client: State<'_, GammaClient>,
     query: String,
 ) -> Result<Vec<Market>, AppError> {
-    gamma_client.search_markets(&query).await
+    gamma_client.search_markets(&query).await.map_err(AppError::from)
 }
 
 // ========== Price History ==========
@@ -147,7 +148,7 @@ pub async fn get_price_history(
                 // Log but don't fail - return cached data if available
                 debug!("Failed to fetch price history from API: {}", e);
                 if cached_count == 0 {
-                    return Err(e);
+                    return Err(AppError::from(e));
                 }
             }
         }

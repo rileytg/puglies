@@ -1,25 +1,29 @@
-mod api;
+// AIDEV-NOTE: Tauri app entry point - uses polymarket_rs for API/WebSocket logic
+
 mod auth;
 mod commands;
 mod db;
 mod error;
-mod types;
-mod websocket;
+mod events;
 
 use std::sync::Arc;
-use api::{GammaClient, ClobClient};
-use auth::ApiCredentials;
 use db::Database;
+use events::TauriEventEmitter;
 use parking_lot::RwLock;
 use tauri::Manager;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use websocket::{WebSocketManager, RtdsClient, ClobWebSocket};
+
+// Import from polymarket-rs
+use polymarket_rs::{
+    ApiCredentials, ClobClient, ClobWebSocket, GammaClient, RtdsClient, WebSocketManager,
+};
 
 /// Shared state for WebSocket connections
+/// AIDEV-NOTE: Generic over TauriEventEmitter to bridge events to frontend
 pub struct WebSocketState {
-    pub manager: Arc<WebSocketManager>,
-    pub rtds: RwLock<Option<RtdsClient>>,
-    pub clob: RwLock<Option<ClobWebSocket>>,
+    pub manager: Arc<WebSocketManager<TauriEventEmitter>>,
+    pub rtds: RwLock<Option<RtdsClient<TauriEventEmitter>>>,
+    pub clob: RwLock<Option<ClobWebSocket<TauriEventEmitter>>>,
 }
 
 /// Shared state for authentication
@@ -48,8 +52,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(gamma_client)
         .setup(|app| {
-            // Initialize WebSocket manager after app is ready
-            let ws_manager = Arc::new(WebSocketManager::new(app.handle().clone()));
+            // Initialize WebSocket manager with TauriEventEmitter
+            let emitter = Arc::new(TauriEventEmitter(app.handle().clone()));
+            let ws_manager = Arc::new(WebSocketManager::new(emitter));
             let ws_state = WebSocketState {
                 manager: ws_manager.clone(),
                 rtds: RwLock::new(None),

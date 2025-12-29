@@ -1,3 +1,4 @@
+// AIDEV-NOTE: Tauri-specific error type that wraps polymarket_rs::ApiError
 use serde::Serialize;
 use thiserror::Error;
 
@@ -15,6 +16,12 @@ pub enum AppError {
     #[error("API error: {0}")]
     Api(String),
 
+    #[error("Auth error: {0}")]
+    Auth(String),
+
+    #[error("Database error: {0}")]
+    Database(String),
+
     #[error("Internal error: {0}")]
     Internal(String),
 }
@@ -26,5 +33,21 @@ impl Serialize for AppError {
         S: serde::Serializer,
     {
         serializer.serialize_str(&self.to_string())
+    }
+}
+
+// Convert from polymarket-rs ApiError to AppError
+impl From<polymarket_rs::ApiError> for AppError {
+    fn from(e: polymarket_rs::ApiError) -> Self {
+        use polymarket_rs::ApiError;
+        match e {
+            ApiError::Http(e) => AppError::Http(e),
+            ApiError::Json(e) => AppError::Json(e),
+            ApiError::MarketNotFound(id) => AppError::MarketNotFound(id),
+            ApiError::Auth(msg) => AppError::Auth(msg),
+            ApiError::Signing(msg) => AppError::Auth(msg),
+            ApiError::WebSocket(msg) => AppError::Api(msg),
+            ApiError::Api(msg) => AppError::Api(msg),
+        }
     }
 }

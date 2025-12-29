@@ -1,12 +1,12 @@
 // AIDEV-NOTE: SQLite database for persisting user data (credentials, settings)
 // In dev mode, stores in local-db/plgui.db; in prod uses app data directory
 
-use rusqlite::{Connection, Result as SqliteResult};
+use rusqlite::Connection;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tracing::{debug, info};
 
-use crate::auth::ApiCredentials;
+use polymarket_rs::ApiCredentials;
 use crate::error::AppError;
 
 /// Database manager for SQLite persistence
