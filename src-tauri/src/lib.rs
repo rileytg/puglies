@@ -93,6 +93,7 @@ pub fn run() {
             commands::get_market,
             commands::get_events,
             commands::search_markets,
+            commands::get_price_history,
             // WebSocket commands
             commands::connect_rtds,
             commands::disconnect_rtds,
@@ -107,6 +108,11 @@ pub fn run() {
             commands::get_balance,
             commands::get_positions,
             commands::get_orders,
+            // Trading commands
+            commands::place_order,
+            commands::cancel_order,
+            commands::cancel_all_orders,
+            commands::cancel_market_orders,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

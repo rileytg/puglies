@@ -1,5 +1,7 @@
 // Market types from Gamma API
+// AIDEV-NOTE: id is internal Gamma API ID (numeric), condition_id is on-chain ID (hex)
 export interface Market {
+  id: string;
   condition_id: string;
   question_id: string;
   question: string;
@@ -128,10 +130,40 @@ export interface Balance {
   allowances: Record<string, string>;
 }
 
+// Trading types
+export type OrderSide = "Buy" | "Sell";
+export type OrderTimeInForce = "Gtc" | "Fok" | "Gtd";
+
+// Order parameters from user input
+export interface OrderParams {
+  tokenId: string;
+  side: OrderSide;
+  price: number;      // 0.0-1.0
+  size: number;       // Number of shares
+  orderType: OrderTimeInForce;
+  expirationSecs?: number;
+}
+
+// Order placement result
+export interface PlaceOrderResult {
+  success: boolean;
+  errorMsg?: string;
+  orderId?: string;
+  orderHashes?: string[];
+  status?: string;
+}
+
+// Cancel result
+export interface CancelResult {
+  canceled: string[];
+  notCanceled: Record<string, string>;
+}
+
 // WebSocket message types (from Rust backend)
 export interface PriceUpdate {
   msg_type?: string;
   market: string;
+  asset_id?: string;  // Token ID for matching specific outcomes
   price: number;
   timestamp?: number;
 }
@@ -182,4 +214,23 @@ export type ConnectionStateValue = "disconnected" | "connecting" | "connected" |
 export interface ConnectionStatus {
   clob: ConnectionStateValue;
   rtds: ConnectionStateValue;
+}
+
+// Price history types
+// AIDEV-NOTE: Matches PricePoint from Rust clob.rs
+export interface PricePoint {
+  t: number;  // Unix timestamp (seconds)
+  p: number;  // Price (0.0 - 1.0)
+}
+
+export interface PriceHistoryParams {
+  tokenId: string;
+  interval?: "1h" | "6h" | "1d" | "1w" | "max";
+  fidelity?: number;  // Resolution in minutes
+}
+
+export interface PriceHistoryResult {
+  history: PricePoint[];
+  cachedCount: number;
+  fetchedCount: number;
 }

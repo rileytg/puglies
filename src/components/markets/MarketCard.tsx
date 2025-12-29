@@ -13,8 +13,9 @@ export function MarketCard({ market }: MarketCardProps) {
   const yesToken = market.tokens.find((t) => t.outcome === "Yes") ?? market.tokens[0];
   const yesPrice = yesToken?.price ?? 0;
 
+  // AIDEV-NOTE: Links use internal Gamma ID, not condition_id
   return (
-    <Link to={`/markets/${market.condition_id}`}>
+    <Link to={`/markets/${market.id}`}>
       <Card className="transition-colors hover:border-primary/50 hover:bg-card/80">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">

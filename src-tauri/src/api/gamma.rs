@@ -1,6 +1,6 @@
 use reqwest::Client;
 use serde::Deserialize;
-use tracing::{debug, instrument};
+use tracing::{debug, error, instrument};
 
 use crate::error::AppError;
 use crate::types::{Event, Market, RawMarket};
@@ -84,20 +84,31 @@ impl GammaClient {
         Ok(markets)
     }
 
-    /// Fetch a single market by condition ID
+    /// Fetch a single market by its internal ID
     #[instrument(skip(self))]
-    pub async fn get_market(&self, condition_id: &str) -> Result<Market, AppError> {
-        let url = format!("{}/markets/{}", self.base_url, condition_id);
+    pub async fn get_market(&self, market_id: &str) -> Result<Market, AppError> {
+        // AIDEV-NOTE: Gamma API uses internal numeric ID in path, not condition_id
+        let url = format!("{}/markets/{}", self.base_url, market_id);
 
         debug!("Fetching market: {}", url);
 
         let response = self.client.get(&url).send().await?;
+        let status = response.status();
+        debug!("Market response status: {}", status);
 
-        if response.status() == 404 {
-            return Err(AppError::MarketNotFound(condition_id.to_string()));
+        if status == 404 {
+            return Err(AppError::MarketNotFound(market_id.to_string()));
         }
 
-        let raw_market: RawMarket = response.json().await?;
+        let body = response.text().await?;
+        debug!("Market response body length: {} chars", body.len());
+
+        let raw_market: RawMarket = serde_json::from_str(&body).map_err(|e| {
+            error!("Failed to parse market JSON: {}", e);
+            debug!("Raw response: {}", &body[..body.len().min(500)]);
+            AppError::Api(format!("Failed to parse market: {}", e))
+        })?;
+
         Ok(Market::from(raw_market))
     }
 

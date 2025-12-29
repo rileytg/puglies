@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/auth";
 import { useMarketsStore } from "@/stores/markets";
+import { useTradingStore } from "@/stores/trading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, TrendingUp, TrendingDown, Wallet, Search } from "lucide-react";
+import { Loader2, RefreshCw, TrendingUp, TrendingDown, Wallet, Search, X, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Portfolio() {
@@ -41,6 +41,7 @@ export function Portfolio() {
   }, [polymarketAddress]);
 
   const { markets } = useMarketsStore();
+  const { cancelOrder, cancelAllOrders, isCancelling } = useTradingStore();
 
   // Check auth status on mount (in case store was reset by HMR)
   useEffect(() => {
@@ -57,16 +58,6 @@ export function Portfolio() {
       return () => clearInterval(interval);
     }
   }, [status.isAuthenticated, fetchPortfolio]);
-
-  // Format USDC balance (6 decimals)
-  const formatUSDC = (amount: string) => {
-    const num = parseFloat(amount) / 1e6;
-    return num.toLocaleString("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-    });
-  };
 
   // Get market question for a condition ID
   const getMarketQuestion = (conditionId: string) => {
@@ -276,8 +267,26 @@ export function Portfolio() {
 
       {/* Open Orders */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Open Orders</CardTitle>
+          {orders.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={async () => {
+                await cancelAllOrders();
+                fetchPortfolio();
+              }}
+              disabled={isCancelling}
+            >
+              {isCancelling ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <XCircle className="mr-2 h-4 w-4" />
+              )}
+              Cancel All
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {orders.length === 0 ? (
@@ -293,6 +302,7 @@ export function Portfolio() {
                   <TableHead className="text-right">Size</TableHead>
                   <TableHead className="text-right">Filled</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -322,6 +332,20 @@ export function Portfolio() {
                       <Badge variant="outline" className="text-xs">
                         {order.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={async () => {
+                          await cancelOrder(order.id);
+                          fetchPortfolio();
+                        }}
+                        disabled={isCancelling}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

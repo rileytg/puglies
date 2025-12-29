@@ -140,40 +140,84 @@ impl ClobWebSocket {
     }
 
     fn handle_message(app: &AppHandle, text: &str) {
-        // Try to parse as order book snapshot
-        if let Ok(snapshot) = serde_json::from_str::<OrderBookSnapshot>(text) {
-            if snapshot.event_type.as_deref() == Some("book") {
-                debug!("Order book snapshot for {}", snapshot.asset_id);
-                if let Err(e) = app.emit("orderbook_snapshot", &snapshot) {
-                    error!("Failed to emit orderbook_snapshot: {}", e);
+        // AIDEV-NOTE: Log first message to debug format issues
+        let preview = if text.len() > 200 { &text[..200] } else { text };
+        debug!("CLOB raw message ({}): {}", text.len(), preview);
+
+        // Try to parse as generic JSON to check event_type
+        let Ok(value) = serde_json::from_str::<serde_json::Value>(text) else {
+            debug!("Failed to parse CLOB message as JSON: {}", preview);
+            return;
+        };
+
+        // Handle array of messages (initial snapshots)
+        // AIDEV-NOTE: Initial order book snapshots come as array without event_type field
+        if let Some(arr) = value.as_array() {
+            for item in arr {
+                // Check if it has order book fields (bids, asks, asset_id)
+                if item.get("bids").is_some() && item.get("asks").is_some() {
+                    if let Ok(snapshot) = serde_json::from_value::<OrderBookSnapshot>(item.clone()) {
+                        debug!("Order book snapshot for {} ({} bids, {} asks)",
+                               snapshot.asset_id, snapshot.bids.len(), snapshot.asks.len());
+                        let _ = app.emit("orderbook_snapshot", &snapshot);
+                    } else {
+                        debug!("Failed to parse order book from array item: {:?}", item);
+                    }
+                } else if let Some(event_type) = item.get("event_type").and_then(|v| v.as_str()) {
+                    // Handle typed events within arrays
+                    match event_type {
+                        "book" => {
+                            if let Ok(snapshot) = serde_json::from_value::<OrderBookSnapshot>(item.clone()) {
+                                debug!("Order book snapshot for {}", snapshot.asset_id);
+                                let _ = app.emit("orderbook_snapshot", &snapshot);
+                            }
+                        }
+                        _ => {}
+                    }
                 }
-                return;
             }
+            return;
         }
 
-        // Try to parse as order book delta
-        if let Ok(delta) = serde_json::from_str::<OrderBookDelta>(text) {
-            if delta.event_type.as_deref() == Some("price_change") {
-                debug!("Order book delta for {}", delta.asset_id);
-                if let Err(e) = app.emit("orderbook_delta", &delta) {
-                    error!("Failed to emit orderbook_delta: {}", e);
+        // Handle single message
+        let event_type = value.get("event_type").and_then(|v| v.as_str());
+
+        match event_type {
+            Some("book") => {
+                if let Ok(snapshot) = serde_json::from_value::<OrderBookSnapshot>(value) {
+                    debug!("Order book snapshot for {}", snapshot.asset_id);
+                    let _ = app.emit("orderbook_snapshot", &snapshot);
                 }
-                return;
+            }
+            Some("price_change") => {
+                // AIDEV-NOTE: price_change has price_changes array with best_bid/best_ask
+                if let Ok(price_event) = serde_json::from_value::<ClobPriceChangeEvent>(value) {
+                    for change in &price_event.price_changes {
+                        // Emit price update using best_bid as the price
+                        if let Ok(price) = change.best_bid.parse::<f64>() {
+                            let update = PriceUpdate {
+                                market: price_event.market.clone(),
+                                asset_id: change.asset_id.clone(),
+                                price,
+                                timestamp: price_event.timestamp,
+                            };
+                            debug!("Price update: {} -> {}", change.asset_id, price);
+                            let _ = app.emit("price_update", &update);
+                        }
+                    }
+                }
+            }
+            Some("trade") => {
+                if let Ok(trade) = serde_json::from_value::<ClobTrade>(value) {
+                    debug!("CLOB trade: {:?}", trade);
+                    let _ = app.emit("clob_trade", &trade);
+                }
+            }
+            _ => {
+                let preview = if text.len() > 100 { &text[..100] } else { text };
+                debug!("Unknown CLOB message: {}", preview);
             }
         }
-
-        // Try to parse as trade event
-        if let Ok(trade) = serde_json::from_str::<ClobTrade>(text) {
-            if trade.event_type.as_deref() == Some("trade") {
-                debug!("CLOB trade: {:?}", trade);
-                if let Err(e) = app.emit("clob_trade", &trade) {
-                    error!("Failed to emit clob_trade: {}", e);
-                }
-                return;
-            }
-        }
-
-        debug!("Unknown CLOB message: {}", text);
     }
 
     /// Disconnect from CLOB WebSocket
@@ -197,6 +241,7 @@ struct ClobSubscribe {
 }
 
 /// Order book snapshot from CLOB
+/// AIDEV-NOTE: timestamp comes as String from API, last_trade_price is optional
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderBookSnapshot {
     #[serde(rename = "event_type")]
@@ -204,9 +249,36 @@ pub struct OrderBookSnapshot {
     pub asset_id: String,
     pub market: Option<String>,
     pub hash: Option<String>,
+    /// AIDEV-NOTE: timestamp is String from API (e.g., "1766979457921")
+    #[serde(default, deserialize_with = "deserialize_timestamp")]
     pub timestamp: Option<i64>,
     pub bids: Vec<OrderBookLevel>,
     pub asks: Vec<OrderBookLevel>,
+    #[serde(default)]
+    pub last_trade_price: Option<String>,
+}
+
+/// Deserialize timestamp from either String or i64
+fn deserialize_timestamp<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::Error;
+
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrInt {
+        String(String),
+        Int(i64),
+    }
+
+    match Option::<StringOrInt>::deserialize(deserializer)? {
+        Some(StringOrInt::String(s)) => {
+            s.parse::<i64>().map(Some).map_err(D::Error::custom)
+        }
+        Some(StringOrInt::Int(i)) => Ok(Some(i)),
+        None => Ok(None),
+    }
 }
 
 /// Single level in the order book
@@ -241,4 +313,35 @@ pub struct ClobTrade {
     pub side: String,
     pub timestamp: Option<i64>,
     pub trade_id: Option<String>,
+}
+
+/// Price change event from CLOB (contains array of price changes)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClobPriceChangeEvent {
+    #[serde(rename = "event_type")]
+    pub event_type: Option<String>,
+    pub market: String,
+    pub price_changes: Vec<ClobPriceChange>,
+    pub timestamp: Option<i64>,
+}
+
+/// Individual price change within a price_change event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClobPriceChange {
+    pub asset_id: String,
+    pub price: String,
+    pub size: String,
+    pub side: String,
+    pub best_bid: String,
+    pub best_ask: String,
+    pub hash: Option<String>,
+}
+
+/// Price update emitted to frontend
+#[derive(Debug, Clone, Serialize)]
+pub struct PriceUpdate {
+    pub market: String,
+    pub asset_id: String,
+    pub price: f64,
+    pub timestamp: Option<i64>,
 }

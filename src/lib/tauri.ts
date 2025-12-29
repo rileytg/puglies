@@ -1,5 +1,18 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Market, Event, ConnectionStatus, AuthStatus, Balance, Position, Order } from "./types";
+import type {
+  Market,
+  Event,
+  ConnectionStatus,
+  AuthStatus,
+  Balance,
+  Position,
+  Order,
+  OrderParams,
+  PlaceOrderResult,
+  CancelResult,
+  PriceHistoryParams,
+  PriceHistoryResult,
+} from "./types";
 
 // AIDEV-NOTE: Tauri command wrappers - keep in sync with src-tauri/src/commands/
 
@@ -12,8 +25,9 @@ export async function getMarkets(
   return invoke("get_markets", { query, limit, offset });
 }
 
-export async function getMarket(conditionId: string): Promise<Market> {
-  return invoke("get_market", { conditionId });
+// AIDEV-NOTE: marketId is Gamma's internal ID, not condition_id
+export async function getMarket(marketId: string): Promise<Market> {
+  return invoke("get_market", { marketId });
 }
 
 export async function getEvents(limit?: number): Promise<Event[]> {
@@ -22,6 +36,13 @@ export async function getEvents(limit?: number): Promise<Event[]> {
 
 export async function searchMarkets(query: string): Promise<Market[]> {
   return invoke("search_markets", { query });
+}
+
+// AIDEV-NOTE: Fetches price history with caching - checks DB first, then API
+export async function getPriceHistory(
+  params: PriceHistoryParams
+): Promise<PriceHistoryResult> {
+  return invoke("get_price_history", { params });
 }
 
 // WebSocket commands
@@ -72,4 +93,24 @@ export async function getPositions(address: string): Promise<Position[]> {
 
 export async function getOrders(): Promise<Order[]> {
   return invoke("get_orders");
+}
+
+// Trading commands
+export async function placeOrder(
+  params: OrderParams,
+  privateKey: string
+): Promise<PlaceOrderResult> {
+  return invoke("place_order", { params, privateKey });
+}
+
+export async function cancelOrder(orderId: string): Promise<CancelResult> {
+  return invoke("cancel_order", { orderId });
+}
+
+export async function cancelAllOrders(): Promise<CancelResult> {
+  return invoke("cancel_all_orders");
+}
+
+export async function cancelMarketOrders(marketId: string): Promise<CancelResult> {
+  return invoke("cancel_market_orders", { marketId });
 }

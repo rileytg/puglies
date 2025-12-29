@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 
 /// Market token (outcome)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Token {
     pub token_id: String,
     pub outcome: String,
@@ -40,7 +39,6 @@ impl Token {
 
 /// Market rewards configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct MarketRewards {
     pub min_size: f64,
     pub max_spread: f64,
@@ -62,6 +60,7 @@ pub struct MarketRewards {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RawMarket {
+    pub id: String,
     pub condition_id: String,
     #[serde(default, alias = "questionID")]
     pub question_id: String,
@@ -92,6 +91,11 @@ pub struct RawMarket {
     pub liquidity_num: f64,
     #[serde(default)]
     pub spread: f64,
+    // AIDEV-NOTE: minimum_order_size is usually 1.0 for most markets
+    #[serde(default = "default_min_order_size")]
+    pub minimum_order_size: f64,
+    #[serde(default = "default_min_tick_size")]
+    pub minimum_tick_size: f64,
     // Raw string fields from API
     #[serde(default)]
     pub outcomes: String,
@@ -103,8 +107,8 @@ pub struct RawMarket {
 
 /// Polymarket market (processed)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Market {
+    pub id: String,
     pub condition_id: String,
     pub question_id: String,
     pub question: String,
@@ -125,7 +129,13 @@ pub struct Market {
     pub volume_num: f64,
     pub liquidity_num: f64,
     pub spread: f64,
+    pub minimum_order_size: f64,
+    pub minimum_tick_size: f64,
 }
+
+// Default values for optional API fields
+fn default_min_order_size() -> f64 { 1.0 }
+fn default_min_tick_size() -> f64 { 0.01 }
 
 impl From<RawMarket> for Market {
     fn from(raw: RawMarket) -> Self {
@@ -136,6 +146,7 @@ impl From<RawMarket> for Market {
         );
 
         Self {
+            id: raw.id,
             condition_id: raw.condition_id,
             question_id: raw.question_id,
             question: raw.question,
@@ -153,13 +164,14 @@ impl From<RawMarket> for Market {
             volume_num: raw.volume_num,
             liquidity_num: raw.liquidity_num,
             spread: raw.spread,
+            minimum_order_size: raw.minimum_order_size,
+            minimum_tick_size: raw.minimum_tick_size,
         }
     }
 }
 
 /// Polymarket event (collection of markets)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Event {
     pub id: String,
     #[serde(default)]

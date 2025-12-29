@@ -118,4 +118,17 @@ Phase 4 Focus areas:
 - WebSocket connections must handle reconnection gracefully
 - All prices are in USDC (6 decimals)
 - Market outcomes are binary (Yes/No tokens)
-- Use `condition_id` as the unique market identifier
+
+### Market Identifiers (CRITICAL)
+
+Markets have TWO different identifiers - using the wrong one causes bugs:
+
+| Field | Format | Use Case |
+|-------|--------|----------|
+| `id` | Numeric string (`"516710"`) | Gamma API routing, internal lookups |
+| `condition_id` | Hex string (`"0x7c6c69d9..."`) | On-chain operations, CLOB, WebSocket subscriptions |
+
+**Frontend routing uses `id`** - links go to `/markets/{market.id}`
+**Trading operations use `condition_id`** - this is the on-chain market identifier
+
+See `POLYMARKET.md` for complete API documentation.

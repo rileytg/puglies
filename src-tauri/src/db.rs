@@ -106,6 +106,22 @@ impl Database {
                 value TEXT NOT NULL,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             );
+
+            -- AIDEV-NOTE: Price history cache - stores historical price data per token
+            -- token_id is the CLOB token ID (long numeric string)
+            -- timestamp is Unix epoch seconds, price is 0.0-1.0
+            CREATE TABLE IF NOT EXISTS price_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                token_id TEXT NOT NULL,
+                timestamp INTEGER NOT NULL,
+                price REAL NOT NULL,
+                fetched_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(token_id, timestamp)
+            );
+
+            -- Index for efficient queries by token
+            CREATE INDEX IF NOT EXISTS idx_price_history_token_time
+                ON price_history(token_id, timestamp DESC);
             "#,
         )
         .map_err(|e| AppError::Internal(format!("Failed to init schema: {}", e)))?;
@@ -224,5 +240,111 @@ impl Database {
         .map_err(|e| AppError::Internal(format!("Failed to set setting: {}", e)))?;
 
         Ok(())
+    }
+
+    // ========== Price History Methods ==========
+
+    /// Store price history points for a token (upserts to avoid duplicates)
+    pub fn store_price_history(&self, token_id: &str, points: &[(i64, f64)]) -> Result<usize, AppError> {
+        let conn = self.conn.lock().unwrap();
+
+        let mut inserted = 0;
+        for (timestamp, price) in points {
+            let result = conn.execute(
+                "INSERT OR IGNORE INTO price_history (token_id, timestamp, price) VALUES (?1, ?2, ?3)",
+                (token_id, timestamp, price),
+            );
+
+            if let Ok(count) = result {
+                inserted += count;
+            }
+        }
+
+        debug!("Stored {} new price history points for {}", inserted, token_id);
+        Ok(inserted)
+    }
+
+    /// Get cached price history for a token within a time range
+    /// Returns Vec<(timestamp, price)> sorted by timestamp ascending
+    pub fn get_price_history(
+        &self,
+        token_id: &str,
+        start_ts: Option<i64>,
+        end_ts: Option<i64>,
+    ) -> Result<Vec<(i64, f64)>, AppError> {
+        let conn = self.conn.lock().unwrap();
+
+        let mut sql = "SELECT timestamp, price FROM price_history WHERE token_id = ?1".to_string();
+        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(token_id.to_string())];
+
+        if let Some(start) = start_ts {
+            sql.push_str(" AND timestamp >= ?2");
+            params.push(Box::new(start));
+        }
+
+        if let Some(end) = end_ts {
+            let param_num = params.len() + 1;
+            sql.push_str(&format!(" AND timestamp <= ?{}", param_num));
+            params.push(Box::new(end));
+        }
+
+        sql.push_str(" ORDER BY timestamp ASC");
+
+        let mut stmt = conn
+            .prepare(&sql)
+            .map_err(|e| AppError::Internal(format!("Failed to prepare query: {}", e)))?;
+
+        let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+
+        let rows = stmt
+            .query_map(param_refs.as_slice(), |row| {
+                Ok((row.get::<_, i64>(0)?, row.get::<_, f64>(1)?))
+            })
+            .map_err(|e| AppError::Internal(format!("Failed to query price history: {}", e)))?;
+
+        let mut result = Vec::new();
+        for row in rows {
+            if let Ok(point) = row {
+                result.push(point);
+            }
+        }
+
+        debug!("Retrieved {} price history points for {}", result.len(), token_id);
+        Ok(result)
+    }
+
+    /// Get the most recent cached timestamp for a token (to know where to resume fetching)
+    pub fn get_latest_price_timestamp(&self, token_id: &str) -> Result<Option<i64>, AppError> {
+        let conn = self.conn.lock().unwrap();
+
+        let result = conn.query_row(
+            "SELECT MAX(timestamp) FROM price_history WHERE token_id = ?1",
+            [token_id],
+            |row| row.get::<_, Option<i64>>(0),
+        );
+
+        match result {
+            Ok(ts) => Ok(ts),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(AppError::Internal(format!("Failed to get latest timestamp: {}", e))),
+        }
+    }
+
+    /// Clear old price history (older than specified days)
+    #[allow(dead_code)]
+    pub fn cleanup_old_price_history(&self, days: i64) -> Result<usize, AppError> {
+        let conn = self.conn.lock().unwrap();
+
+        let cutoff = chrono::Utc::now().timestamp() - (days * 24 * 60 * 60);
+
+        let deleted = conn
+            .execute(
+                "DELETE FROM price_history WHERE timestamp < ?1",
+                [cutoff],
+            )
+            .map_err(|e| AppError::Internal(format!("Failed to cleanup price history: {}", e)))?;
+
+        info!("Cleaned up {} old price history records", deleted);
+        Ok(deleted)
     }
 }

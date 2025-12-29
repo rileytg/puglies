@@ -7,16 +7,19 @@ import { Separator } from "@/components/ui/separator";
 import { OrderBook } from "@/components/trading/OrderBook";
 import { PriceChart, type PriceDataPoint } from "@/components/trading/PriceChart";
 import { formatPrice, formatCompactUsd } from "@/lib/utils";
-import { getMarket } from "@/lib/tauri";
+import { getMarket, getPriceHistory } from "@/lib/tauri";
 import { useWebSocketStore } from "@/stores/websocket";
 import { useOrderBookStore } from "@/stores/orderbook";
 import { useTauriEvent } from "@/hooks/useTauriEvents";
 import { ArrowLeft, ExternalLink, Clock, DollarSign, Droplets } from "lucide-react";
+import { TradeForm } from "@/components/trading";
+import { useAuthStore } from "@/stores/auth";
 import type { Market, PriceUpdate } from "@/lib/types";
 import type { Time } from "lightweight-charts";
 
 export function MarketDetail() {
-  const { conditionId } = useParams<{ conditionId: string }>();
+  // AIDEV-NOTE: marketId is Gamma's internal ID (numeric), not condition_id (hex)
+  const { marketId } = useParams<{ marketId: string }>();
   const [market, setMarket] = useState<Market | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,38 +29,69 @@ export function MarketDetail() {
   const { connectToClob, disconnectFromClob, connectToRtds, disconnectFromRtds } =
     useWebSocketStore();
   const getOrderBook = useOrderBookStore((state) => state.getOrderBook);
+  const { fetchPortfolio } = useAuthStore();
 
-  // Fetch market data
+  // Fetch market data and price history
   useEffect(() => {
     async function fetchMarket() {
-      if (!conditionId) return;
+      if (!marketId) return;
       setIsLoading(true);
       try {
-        const data = await getMarket(conditionId);
+        const data = await getMarket(marketId);
         setMarket(data);
 
-        // Initialize price history with current price
+        // Fetch cached/API price history for the Yes token
         const yesToken = data.tokens.find((t) => t.outcome === "Yes") ?? data.tokens[0];
         if (yesToken) {
-          const now = Math.floor(Date.now() / 1000) as Time;
-          setPriceHistory([{ time: now, value: yesToken.price }]);
+          try {
+            // AIDEV-NOTE: Fetch price history with caching - interval "max" gets all data
+            const historyResult = await getPriceHistory({
+              tokenId: yesToken.token_id,
+              interval: "max",
+              fidelity: 60, // Hourly resolution
+            });
+
+            if (historyResult.history.length > 0) {
+              // Convert API format {t, p} to chart format {time, value}
+              const chartData: PriceDataPoint[] = historyResult.history.map((point) => ({
+                time: point.t as Time,
+                value: point.p,
+              }));
+              setPriceHistory(chartData);
+              console.log(
+                `[MarketDetail] Loaded ${historyResult.history.length} price points ` +
+                `(cached: ${historyResult.cachedCount}, fetched: ${historyResult.fetchedCount})`
+              );
+            } else {
+              // Fallback: just use current price
+              const now = Math.floor(Date.now() / 1000) as Time;
+              setPriceHistory([{ time: now, value: yesToken.price }]);
+            }
+          } catch (histErr) {
+            console.warn("[MarketDetail] Failed to fetch price history:", histErr);
+            // Fallback to current price
+            const now = Math.floor(Date.now() / 1000) as Time;
+            setPriceHistory([{ time: now, value: yesToken.price }]);
+          }
         }
       } catch (err) {
+        console.error("[MarketDetail] Error fetching market:", err);
         setError(err instanceof Error ? err.message : "Failed to fetch market");
       } finally {
         setIsLoading(false);
       }
     }
     fetchMarket();
-  }, [conditionId]);
+  }, [marketId]);
 
   // Connect to WebSocket when market is loaded
+  // AIDEV-NOTE: Both CLOB and RTDS use token IDs (not condition_id)
   useEffect(() => {
     if (!market) return;
 
     const tokenIds = market.tokens.map((t) => t.token_id);
     connectToClob(tokenIds);
-    connectToRtds([market.condition_id]);
+    connectToRtds(tokenIds); // RTDS clob_market topic needs token IDs
 
     return () => {
       disconnectFromClob();
@@ -65,9 +99,14 @@ export function MarketDetail() {
     };
   }, [market, connectToClob, disconnectFromClob, connectToRtds, disconnectFromRtds]);
 
-  // Listen for price updates
+  // Listen for price updates from CLOB WebSocket
+  // AIDEV-NOTE: Price updates have market (condition_id) and asset_id (token_id)
+  const yesTokenIdRef = market?.tokens.find((t) => t.outcome === "Yes")?.token_id;
   useTauriEvent<PriceUpdate>("price_update", (update) => {
-    if (update.market === market?.condition_id) {
+    // Match by market condition_id OR by Yes token asset_id
+    const isMatch = update.market === market?.condition_id ||
+                    update.asset_id === yesTokenIdRef;
+    if (isMatch && update.asset_id === yesTokenIdRef) {
       setLivePrice(update.price);
       const time = (update.timestamp
         ? update.timestamp / 1000
@@ -289,14 +328,23 @@ export function MarketDetail() {
         </Card>
       </div>
 
-      {/* Trading placeholder */}
-      <Card className="border-dashed">
-        <CardContent className="py-8 text-center">
-          <p className="text-muted-foreground">
-            Trading will be available after authentication (Phase 4)
-          </p>
-        </CardContent>
-      </Card>
+      {/* Trading Forms */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {yesToken && (
+          <TradeForm
+            market={market}
+            token={yesToken}
+            onOrderPlaced={() => fetchPortfolio()}
+          />
+        )}
+        {noToken && (
+          <TradeForm
+            market={market}
+            token={noToken}
+            onOrderPlaced={() => fetchPortfolio()}
+          />
+        )}
+      </div>
 
       {/* External link */}
       <div>
