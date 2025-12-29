@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarketList } from "@/components/markets";
 import { useMarketsStore } from "@/stores/markets";
 import { useAuthStore } from "@/stores/auth";
-import { getMarkets } from "@/lib/tauri";
+import { getBackend } from "@/lib/backend";
 import { Briefcase, TrendingUp, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +34,8 @@ export function Dashboard() {
     async function fetchMarkets() {
       setLoading(true);
       try {
-        const data = await getMarkets(undefined, 6);
+        const backend = await getBackend();
+        const data = await backend.getMarkets(undefined, 6);
         setMarkets(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch markets");

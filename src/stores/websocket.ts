@@ -1,13 +1,7 @@
 // AIDEV-NOTE: WebSocket state management - tracks connection status and provides connect/disconnect actions
 import { create } from "zustand";
 import type { ConnectionStatus, ConnectionStateValue } from "@/lib/types";
-import {
-  connectRtds,
-  disconnectRtds,
-  connectClob,
-  disconnectClob,
-  getConnectionStatus,
-} from "@/lib/tauri";
+import { getBackend } from "@/lib/backend";
 
 interface WebSocketState {
   status: ConnectionStatus;
@@ -49,31 +43,36 @@ export const useWebSocketStore = create<WebSocketState>((set) => ({
   connectToRtds: async (markets) => {
     set({ isConnecting: true });
     try {
-      await connectRtds(markets);
+      const backend = await getBackend();
+      await backend.connectRtds(markets);
     } finally {
       set({ isConnecting: false });
     }
   },
 
   disconnectFromRtds: async () => {
-    await disconnectRtds();
+    const backend = await getBackend();
+    await backend.disconnectRtds();
   },
 
   connectToClob: async (tokenIds) => {
     set({ isConnecting: true });
     try {
-      await connectClob(tokenIds);
+      const backend = await getBackend();
+      await backend.connectClob(tokenIds);
     } finally {
       set({ isConnecting: false });
     }
   },
 
   disconnectFromClob: async () => {
-    await disconnectClob();
+    const backend = await getBackend();
+    await backend.disconnectClob();
   },
 
   refreshStatus: async () => {
-    const status = await getConnectionStatus();
+    const backend = await getBackend();
+    const status = await backend.getConnectionStatus();
     set({ status });
   },
 }));

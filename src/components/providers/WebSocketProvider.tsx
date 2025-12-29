@@ -1,6 +1,6 @@
-// AIDEV-NOTE: Provider component that listens to Tauri events and updates stores
+// AIDEV-NOTE: Provider component that listens to backend events and updates stores
 import { useEffect } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { getEventSubscriber, EVENTS } from "@/lib/backend";
 import { useWebSocketStore } from "@/stores/websocket";
 import { useOrderBookStore } from "@/stores/orderbook";
 import type {
@@ -20,64 +20,67 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const applyDelta = useOrderBookStore((state) => state.applyDelta);
 
   useEffect(() => {
-    const unlisteners: (() => void)[] = [];
+    let unsubscribe: (() => void) | undefined;
 
     const setupListeners = async () => {
-      // Connection status updates
-      const unlistenStatus = await listen<ConnectionStatus>(
-        "connection_status",
-        (event) => {
-          setStatus(event.payload);
-        }
-      );
-      unlisteners.push(unlistenStatus);
+      const subscriber = await getEventSubscriber();
 
-      // Order book snapshots
-      const unlistenSnapshot = await listen<OrderBookSnapshot>(
-        "orderbook_snapshot",
-        (event) => {
-          setSnapshot(event.payload.asset_id, event.payload);
-          setLastUpdate(new Date());
-        }
-      );
-      unlisteners.push(unlistenSnapshot);
-
-      // Order book deltas
-      const unlistenDelta = await listen<OrderBookDelta>(
-        "orderbook_delta",
-        (event) => {
-          applyDelta(event.payload);
-          setLastUpdate(new Date());
-        }
-      );
-      unlisteners.push(unlistenDelta);
-
-      // Price updates (RTDS)
-      const unlistenPrice = await listen("price_update", () => {
-        setLastUpdate(new Date());
-        // Price updates can be handled by individual components via useTauriEvent
-      });
-      unlisteners.push(unlistenPrice);
-
-      // Trade updates (RTDS)
-      const unlistenTrade = await listen("trade_update", () => {
-        setLastUpdate(new Date());
-        // Trade updates can be handled by individual components
-      });
-      unlisteners.push(unlistenTrade);
-
-      // CLOB trades
-      const unlistenClobTrade = await listen("clob_trade", () => {
-        setLastUpdate(new Date());
-        // CLOB trades can be handled by individual components
-      });
-      unlisteners.push(unlistenClobTrade);
+      unsubscribe = await subscriber.subscribeMany([
+        // Connection status updates
+        {
+          name: EVENTS.CONNECTION_STATUS,
+          callback: (payload) => {
+            setStatus(payload as ConnectionStatus);
+          },
+        },
+        // Order book snapshots
+        {
+          name: EVENTS.ORDERBOOK_SNAPSHOT,
+          callback: (payload) => {
+            const snapshot = payload as OrderBookSnapshot;
+            setSnapshot(snapshot.asset_id, snapshot);
+            setLastUpdate(new Date());
+          },
+        },
+        // Order book deltas
+        {
+          name: EVENTS.ORDERBOOK_DELTA,
+          callback: (payload) => {
+            applyDelta(payload as OrderBookDelta);
+            setLastUpdate(new Date());
+          },
+        },
+        // Price updates (RTDS)
+        {
+          name: EVENTS.PRICE_UPDATE,
+          callback: () => {
+            setLastUpdate(new Date());
+            // Price updates can be handled by individual components via useBackendEvent
+          },
+        },
+        // Trade updates (RTDS)
+        {
+          name: EVENTS.TRADE_UPDATE,
+          callback: () => {
+            setLastUpdate(new Date());
+            // Trade updates can be handled by individual components
+          },
+        },
+        // CLOB trades
+        {
+          name: EVENTS.CLOB_TRADE,
+          callback: () => {
+            setLastUpdate(new Date());
+            // CLOB trades can be handled by individual components
+          },
+        },
+      ]);
     };
 
     setupListeners();
 
     return () => {
-      unlisteners.forEach((unlisten) => unlisten());
+      unsubscribe?.();
     };
   }, [setStatus, setLastUpdate, setSnapshot, applyDelta]);
 

@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import type { OrderParams, PlaceOrderResult } from "@/lib/types";
-import * as tauri from "@/lib/tauri";
+import { getBackend } from "@/lib/backend";
 
 interface TradingState {
   // Order form state
@@ -36,7 +36,8 @@ export const useTradingStore = create<TradingState>((set) => ({
     set({ isPlacingOrder: true, orderError: null, lastOrderResult: null });
 
     try {
-      const result = await tauri.placeOrder(params, privateKey);
+      const backend = await getBackend();
+      const result = await backend.placeOrder(params, privateKey);
       set({ isPlacingOrder: false, lastOrderResult: result });
 
       if (!result.success) {
@@ -57,7 +58,8 @@ export const useTradingStore = create<TradingState>((set) => ({
     set({ isCancelling: true, cancelError: null });
 
     try {
-      const result = await tauri.cancelOrder(orderId);
+      const backend = await getBackend();
+      const result = await backend.cancelOrder(orderId);
       set({ isCancelling: false });
 
       // Check if the order was successfully canceled
@@ -85,7 +87,8 @@ export const useTradingStore = create<TradingState>((set) => ({
     set({ isCancelling: true, cancelError: null });
 
     try {
-      await tauri.cancelAllOrders();
+      const backend = await getBackend();
+      await backend.cancelAllOrders();
       set({ isCancelling: false });
       return true;
     } catch (err) {
@@ -100,7 +103,8 @@ export const useTradingStore = create<TradingState>((set) => ({
     set({ isCancelling: true, cancelError: null });
 
     try {
-      await tauri.cancelMarketOrders(marketId);
+      const backend = await getBackend();
+      await backend.cancelMarketOrders(marketId);
       set({ isCancelling: false });
       return true;
     } catch (err) {

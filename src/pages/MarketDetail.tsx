@@ -7,10 +7,10 @@ import { Separator } from "@/components/ui/separator";
 import { OrderBook } from "@/components/trading/OrderBook";
 import { PriceChart, type PriceDataPoint } from "@/components/trading/PriceChart";
 import { formatPrice, formatCompactUsd } from "@/lib/utils";
-import { getMarket, getPriceHistory } from "@/lib/tauri";
+import { getBackend } from "@/lib/backend";
 import { useWebSocketStore } from "@/stores/websocket";
 import { useOrderBookStore } from "@/stores/orderbook";
-import { useTauriEvent } from "@/hooks/useTauriEvents";
+import { useBackendEvent } from "@/hooks/useBackendEvent";
 import { ArrowLeft, ExternalLink, Clock, DollarSign, Droplets } from "lucide-react";
 import { TradeForm } from "@/components/trading";
 import { useAuthStore } from "@/stores/auth";
@@ -37,7 +37,8 @@ export function MarketDetail() {
       if (!marketId) return;
       setIsLoading(true);
       try {
-        const data = await getMarket(marketId);
+        const backend = await getBackend();
+        const data = await backend.getMarket(marketId);
         setMarket(data);
 
         // Fetch cached/API price history for the Yes token
@@ -45,7 +46,7 @@ export function MarketDetail() {
         if (yesToken) {
           try {
             // AIDEV-NOTE: Fetch price history with caching - interval "max" gets all data
-            const historyResult = await getPriceHistory({
+            const historyResult = await backend.getPriceHistory({
               tokenId: yesToken.token_id,
               interval: "max",
               fidelity: 60, // Hourly resolution
@@ -102,7 +103,7 @@ export function MarketDetail() {
   // Listen for price updates from CLOB WebSocket
   // AIDEV-NOTE: Price updates have market (condition_id) and asset_id (token_id)
   const yesTokenIdRef = market?.tokens.find((t) => t.outcome === "Yes")?.token_id;
-  useTauriEvent<PriceUpdate>("price_update", (update) => {
+  useBackendEvent<PriceUpdate>("price_update", (update) => {
     // Match by market condition_id OR by Yes token asset_id
     const isMatch = update.market === market?.condition_id ||
                     update.asset_id === yesTokenIdRef;

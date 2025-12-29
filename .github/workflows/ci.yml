@@ -1,4 +1,4 @@
-# AIDEV-NOTE: CI workflow for polymarket-rs crate tests
+# AIDEV-NOTE: CI workflow - Rust and Frontend tests run in parallel
 name: CI
 
 on:
@@ -11,7 +11,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
+  # Rust tests for polymarket-rs crate
+  test-rust:
     name: Test polymarket-rs
     runs-on: ubuntu-latest
 
@@ -39,3 +40,31 @@ jobs:
 
       - name: Run clippy
         run: cargo clippy -p polymarket-rs -- -D warnings
+
+  # Frontend tests for React UI
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test:run
+
+      - name: TypeScript check
+        run: pnpm exec tsc --noEmit

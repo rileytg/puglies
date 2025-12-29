@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import type { AuthStatus, Balance, Position, Order } from "@/lib/types";
-import * as tauri from "@/lib/tauri";
+import { getBackend } from "@/lib/backend";
 
 interface AuthState {
   // Auth status
@@ -42,7 +42,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Check current auth status (on app load)
   checkAuthStatus: async () => {
     try {
-      const status = await tauri.getAuthStatus();
+      const backend = await getBackend();
+      const status = await backend.getAuthStatus();
       set({
         status,
         polymarketAddress: status.polymarketAddress || null,
@@ -62,7 +63,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const status = await tauri.login(privateKey);
+      const backend = await getBackend();
+      const status = await backend.login(privateKey);
       set({ status, isLoading: false });
 
       // Fetch portfolio after successful login
@@ -83,7 +85,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const status = await tauri.logout();
+      const backend = await getBackend();
+      const status = await backend.logout();
       set({
         status,
         isLoading: false,
@@ -101,9 +104,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setPolymarketAddress: async (address: string) => {
     set({ polymarketAddress: address, portfolioLoading: true });
 
+    const backend = await getBackend();
+
     // Persist to backend database
     try {
-      await tauri.setPolymarketAddress(address);
+      await backend.setPolymarketAddress(address);
     } catch (err) {
       console.error("Failed to persist polymarket address:", err);
     }
@@ -111,7 +116,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Fetch positions immediately (public API, no auth needed)
     try {
       console.log("Fetching positions for:", address);
-      const positions = await tauri.getPositions(address);
+      const positions = await backend.getPositions(address);
       console.log("Got positions:", positions);
       set({ positions, portfolioLoading: false });
     } catch (err) {
@@ -126,6 +131,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     set({ portfolioLoading: true });
 
+    const backend = await getBackend();
+
     try {
       // Fetch balance and orders if authenticated
       let balance: Balance | null = null;
@@ -134,8 +141,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (status.isAuthenticated) {
         try {
           // AIDEV-NOTE: Fetch balance and orders separately - orders endpoint can hang
-          const balancePromise = tauri.getBalance();
-          const ordersPromise = tauri.getOrders();
+          const balancePromise = backend.getBalance();
+          const ordersPromise = backend.getOrders();
 
           try {
             balance = await balancePromise;
@@ -161,7 +168,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       let positions: Position[] = [];
       if (polymarketAddress) {
         try {
-          positions = await tauri.getPositions(polymarketAddress);
+          positions = await backend.getPositions(polymarketAddress);
         } catch (err) {
           console.error("Failed to fetch positions:", err);
         }

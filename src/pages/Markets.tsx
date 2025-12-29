@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { MarketList, MarketSearch } from "@/components/markets";
 import { useMarketsStore } from "@/stores/markets";
-import { getMarkets, searchMarkets } from "@/lib/tauri";
+import { getBackend } from "@/lib/backend";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 
@@ -21,9 +21,10 @@ export function Markets() {
   const fetchMarkets = useCallback(async () => {
     setLoading(true);
     try {
+      const backend = await getBackend();
       const data = debouncedQuery
-        ? await searchMarkets(debouncedQuery)
-        : await getMarkets(undefined, 50);
+        ? await backend.searchMarkets(debouncedQuery)
+        : await backend.getMarkets(undefined, 50);
       setMarkets(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch markets");
