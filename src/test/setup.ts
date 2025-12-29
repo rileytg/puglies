@@ -23,5 +23,5 @@ beforeEach(() => {
 // Tests can override this per-test as needed
 beforeEach(() => {
   // Default: not in Tauri environment
-  delete (window as Record<string, unknown>).__TAURI_INTERNALS__;
+  delete (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
 });

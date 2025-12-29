@@ -13,7 +13,7 @@ import { createMockBackend, createMockEventSubscriber } from "@/test/mock-adapte
 describe("isTauri", () => {
   beforeEach(() => {
     // Clean up window state
-    delete (window as Record<string, unknown>).__TAURI_INTERNALS__;
+    delete (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
   });
 
   it("returns false when __TAURI_INTERNALS__ is not present", () => {
@@ -21,7 +21,7 @@ describe("isTauri", () => {
   });
 
   it("returns true when __TAURI_INTERNALS__ is present", () => {
-    (window as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+    (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
     expect(isTauri()).toBe(true);
   });
 
@@ -37,7 +37,7 @@ describe("isTauri", () => {
 describe("getBackend", () => {
   beforeEach(() => {
     _resetForTesting();
-    delete (window as Record<string, unknown>).__TAURI_INTERNALS__;
+    delete (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
   });
 
   it("returns WebBackendAdapter when not in Tauri", async () => {
@@ -64,7 +64,7 @@ describe("getBackend", () => {
 describe("getEventSubscriber", () => {
   beforeEach(() => {
     _resetForTesting();
-    delete (window as Record<string, unknown>).__TAURI_INTERNALS__;
+    delete (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
   });
 
   it("returns WebEventSubscriber when not in Tauri", async () => {
@@ -121,7 +121,7 @@ describe("_setBackendForTesting", () => {
 
     const markets = await backend.getMarkets();
     expect(markets).toHaveLength(1);
-    expect(markets[0].id).toBe("test-123");
+    expect(markets[0]!.id).toBe("test-123");
   });
 
   it("mock backend methods are called correctly", async () => {

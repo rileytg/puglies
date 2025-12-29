@@ -22,6 +22,8 @@ import type {
  * Currently a stub - implement when polymarket-server is ready.
  */
 export class WebBackendAdapter implements BackendAdapter {
+  // AIDEV-NOTE: baseUrl will be used when HTTP implementation is added
+  // @ts-expect-error Property unused until HTTP implementation
   constructor(private baseUrl: string = "/api") {}
 
   private notImplemented(method: string): never {
