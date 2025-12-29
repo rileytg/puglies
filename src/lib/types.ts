@@ -90,25 +90,42 @@ export interface OrderBookLevel {
 
 export interface Position {
   asset: string;
-  condition_id: string;
-  size: string;
-  avg_price: string;
-  realized_pnl: string;
-  cur_price: string;
+  conditionId: string;
+  size: number;
+  avgPrice: number;
+  initialValue: number;
+  currentValue: number;
+  cashPnl: number;
+  percentPnl: number;
+  curPrice: number;
+  title: string;
+  outcome: string;
+  proxyWallet: string;
 }
 
 export interface Order {
   id: string;
   market: string;
-  asset_id: string;
-  side: "BUY" | "SELL";
-  type: "GTC" | "FOK" | "GTD";
-  original_size: string;
-  size_matched: string;
+  asset: string;
+  side: string;
+  originalSize: string;
+  sizeMatched: string;
   price: string;
-  status: "live" | "matched" | "cancelled";
-  created_at: string;
-  expiration?: string;
+  status: string;
+  orderType: string;
+  createdAt: string;
+}
+
+// Auth types
+export interface AuthStatus {
+  isAuthenticated: boolean;
+  address?: string;
+  polymarketAddress?: string;
+}
+
+export interface Balance {
+  balance: string;
+  allowances: Record<string, string>;
 }
 
 // WebSocket message types (from Rust backend)

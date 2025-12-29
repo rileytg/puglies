@@ -106,62 +106,61 @@
 
 ---
 
-## Phase 3: Authentication
+## Phase 3: Authentication ✓
 
 ### EIP-712 Signing (Rust)
-- [ ] Add ethers-rs dependency
-- [ ] Create `auth/eip712.rs`
-- [ ] Implement typed data structure for Polymarket
-- [ ] Implement signing function
+- [x] Add alloy-signer dependencies
+- [x] Create `auth/eip712.rs`
+- [x] Implement typed data structure for Polymarket
+- [x] Implement signing function
 - [ ] Test signature verification
 
 ### HMAC Authentication (Rust)
-- [ ] Create `auth/hmac.rs`
-- [ ] Implement L2 header generation
-- [ ] Add timestamp and signature headers
+- [x] Create `auth/hmac.rs`
+- [x] Implement L2 header generation
+- [x] Add timestamp and signature headers
 
 ### API Key Derivation
-- [ ] Create `commands/auth.rs`
-- [ ] Implement nonce generation
-- [ ] Implement API key derivation flow
-- [ ] POST to `/auth/api-key` endpoint
-- [ ] Store credentials in keyring
+- [x] Create `commands/auth.rs`
+- [x] Implement nonce generation
+- [x] Implement API key derivation flow
+- [x] POST to `/auth/api-key` endpoint
+- [x] Store credentials in keyring
 
 ### Secure Storage
-- [ ] Add keyring-rs dependency
-- [ ] Implement credential storage
-- [ ] Implement credential retrieval
-- [ ] Implement credential deletion (logout)
+- [x] Add keyring-rs dependency
+- [x] Implement credential storage
+- [x] Implement credential retrieval
+- [x] Implement credential deletion (logout)
 
 ### CLOB REST Client
-- [ ] Create `api/clob.rs`
-- [ ] Implement authenticated request helper
-- [ ] Implement `get_positions()`
-- [ ] Implement `get_orders()`
-- [ ] Implement `get_balance()`
+- [x] Create `api/clob.rs`
+- [x] Implement authenticated request helper
+- [x] Implement `get_positions()`
+- [x] Implement `get_orders()`
+- [x] Implement `get_balance()`
 
 ### Tauri Auth Commands
-- [ ] Implement `login` command
-- [ ] Implement `logout` command
-- [ ] Implement `get_auth_status` command
-- [ ] Implement `get_positions` command
-- [ ] Implement `get_orders` command
-- [ ] Implement `get_balance` command
+- [x] Implement `login` command
+- [x] Implement `logout` command
+- [x] Implement `get_auth_status` command
+- [x] Implement `get_positions` command
+- [x] Implement `get_orders` command
+- [x] Implement `get_balance` command
 
 ### Frontend - Auth
-- [ ] Create `auth` Zustand store
-- [ ] Create `LoginModal` component
-- [ ] Add secure private key input (password field)
-- [ ] Add login/logout to user menu
+- [x] Create `auth` Zustand store
+- [x] Create `LoginModal` component
+- [x] Add secure private key input (password field)
+- [x] Add login/logout to user menu
 - [ ] Implement protected route wrapper
 
 ### Frontend - Portfolio
-- [ ] Create `portfolio` Zustand store
-- [ ] Create `BalanceSummary` component
-- [ ] Create `PositionsList` component
-- [ ] Create `OrdersList` component
-- [ ] Create Portfolio dashboard page
-- [ ] Add P&L calculations
+- [x] Create `auth` store with portfolio data
+- [x] Create Portfolio page with balance display
+- [x] Create positions table
+- [x] Create orders table
+- [x] Add P&L display
 
 ### CLOB User WebSocket
 - [ ] Subscribe to user channel after auth
@@ -171,10 +170,10 @@
 
 ### Phase 3 Verification
 - [ ] Login flow works end-to-end
-- [ ] Credentials persist across restarts
-- [ ] Portfolio displays correctly
+- [x] Credentials persist across restarts (keyring)
+- [x] Portfolio displays correctly
 - [ ] User WebSocket updates work
-- [ ] Logout clears session
+- [x] Logout clears session
 
 ---
 

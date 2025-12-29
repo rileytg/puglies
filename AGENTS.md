@@ -86,20 +86,22 @@ async fn get_markets(limit: Option<u32>) -> Result<Vec<Market>, AppError> {
 const markets = await invoke<Market[]>('get_markets', { limit: 50 });
 ```
 
-## Current Phase: 3 (Authentication)
+## Current Phase: 4 (Trading)
 
-Phase 2 (Real-Time Data) completed:
-- WebSocket manager with exponential backoff reconnection
-- RTDS WebSocket for live market prices
-- CLOB WebSocket for order book depth
-- Frontend event hooks, stores, OrderBook and PriceChart components
+Phase 3 (Authentication) completed:
+- EIP-712 typed data signing with alloy-signer
+- HMAC authentication for CLOB REST API
+- API key derivation flow via /auth/api-key
+- Secure credential storage using OS keyring
+- Login/logout commands and frontend modal
+- Portfolio page with positions and orders display
 
-Phase 3 Focus areas:
-1. EIP-712 signing for Polymarket API authentication
-2. HMAC authentication for CLOB REST API
-3. API key derivation flow
-4. Secure credential storage using OS keyring
-5. Portfolio and positions display
+Phase 4 Focus areas:
+1. Order signing (EIP-712)
+2. Order API (POST /order, DELETE /order)
+3. Tauri trading commands (place_order, cancel_order)
+4. Frontend order form and confirmation modal
+5. Order management in portfolio
 
 ## External APIs
 

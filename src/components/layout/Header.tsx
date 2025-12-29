@@ -1,7 +1,17 @@
+import { useState, useEffect } from "react";
 import { useWebSocketStore } from "@/stores/websocket";
+import { useAuthStore } from "@/stores/auth";
 import { cn } from "@/lib/utils";
-import { Circle, User, Loader2 } from "lucide-react";
+import { Circle, Loader2, LogOut, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { LoginModal } from "@/components/auth";
 import type { ConnectionStateValue } from "@/lib/types";
 
 function ConnectionIndicator({
@@ -41,28 +51,81 @@ function ConnectionIndicator({
 
 export function Header() {
   const { status } = useWebSocketStore();
+  const { status: authStatus, checkAuthStatus, logout, balance } = useAuthStore();
+  const [loginOpen, setLoginOpen] = useState(false);
+
+  // Check auth status on mount
+  useEffect(() => {
+    checkAuthStatus();
+  }, [checkAuthStatus]);
+
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const formatBalance = (bal: string) => {
+    const num = parseFloat(bal) / 1e6; // USDC has 6 decimals
+    return num.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    });
+  };
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
-      {/* Title */}
-      <div className="flex items-center gap-3">
-        <h1 className="text-lg font-semibold">PLGUI</h1>
-        <span className="text-sm text-muted-foreground">Polymarket Desktop</span>
-      </div>
-
-      {/* Right side */}
-      <div className="flex items-center gap-4">
-        {/* Connection status */}
-        <div className="flex items-center gap-3 text-sm">
-          <ConnectionIndicator label="RTDS" state={status.rtds} />
-          <ConnectionIndicator label="CLOB" state={status.clob} />
+    <>
+      <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
+        {/* Title */}
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-semibold">PLGUI</h1>
+          <span className="text-sm text-muted-foreground">Polymarket Desktop</span>
         </div>
 
-        {/* User button (placeholder for auth) */}
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <User className="h-5 w-5" />
-        </Button>
-      </div>
-    </header>
+        {/* Right side */}
+        <div className="flex items-center gap-4">
+          {/* Connection status */}
+          <div className="flex items-center gap-3 text-sm">
+            <ConnectionIndicator label="RTDS" state={status.rtds} />
+            <ConnectionIndicator label="CLOB" state={status.clob} />
+          </div>
+
+          {/* Auth / User menu */}
+          {authStatus.isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Wallet className="h-4 w-4" />
+                  <span className="font-mono text-xs">
+                    {formatAddress(authStatus.address || "")}
+                  </span>
+                  {balance && (
+                    <span className="text-muted-foreground">
+                      {formatBalance(balance.balance)}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem className="font-mono text-xs">
+                  {authStatus.address}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => logout()} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Disconnect
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setLoginOpen(true)}>
+              <Wallet className="mr-2 h-4 w-4" />
+              Connect
+            </Button>
+          )}
+        </div>
+      </header>
+
+      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+    </>
   );
 }
