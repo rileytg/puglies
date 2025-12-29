@@ -111,11 +111,11 @@ impl PolymarketSigner {
 
         let digest = keccak256(&message);
 
-        tracing::debug!("EIP-712 digest: 0x{}", hex::encode(&digest));
+        tracing::debug!("EIP-712 digest: 0x{}", hex::encode(digest));
 
         // Sign the hash
         let signature = self.signer
-            .sign_hash(&digest.into())
+            .sign_hash(&digest)
             .await
             .map_err(|e| ApiError::Signing(format!("Failed to sign: {}", e)))?;
 

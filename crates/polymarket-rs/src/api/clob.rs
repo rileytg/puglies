@@ -23,6 +23,7 @@ pub struct ClobClient {
 
 /// AIDEV-NOTE: Orders response is wrapped: {"data": [], "next_cursor": ..., "limit": ..., "count": ...}
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)] // Fields used for API pagination (next_cursor, limit, count)
 pub struct OrdersResponse {
     pub data: Vec<Order>,
     #[serde(default)]

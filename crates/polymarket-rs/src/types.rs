@@ -25,8 +25,8 @@ impl Token {
 
         outcomes
             .into_iter()
-            .zip(prices.into_iter())
-            .zip(token_ids.into_iter())
+            .zip(prices)
+            .zip(token_ids)
             .map(|((outcome, price), token_id)| Token {
                 token_id,
                 outcome,
@@ -214,20 +214,15 @@ pub struct Event {
 // ============================================================================
 
 /// Connection state for WebSocket clients
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ConnectionState {
+    #[default]
     Disconnected,
     Connecting,
     Connected,
     Reconnecting,
     Failed,
-}
-
-impl Default for ConnectionState {
-    fn default() -> Self {
-        Self::Disconnected
-    }
 }
 
 /// Connection status for both WebSocket clients

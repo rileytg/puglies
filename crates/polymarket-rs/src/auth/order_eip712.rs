@@ -62,10 +62,10 @@ impl OrderSigner {
 
         let digest = keccak256(&message);
 
-        tracing::debug!("Order EIP-712 digest: 0x{}", hex::encode(&digest));
+        tracing::debug!("Order EIP-712 digest: 0x{}", hex::encode(digest));
 
         let signature = self.signer
-            .sign_hash(&digest.into())
+            .sign_hash(&digest)
             .await
             .map_err(|e| ApiError::Signing(format!("Failed to sign order: {}", e)))?;
 

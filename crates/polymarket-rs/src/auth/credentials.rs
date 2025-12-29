@@ -17,23 +17,15 @@ pub struct ApiCredentials {
 }
 
 /// Current authentication status
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthStatus {
     /// Whether the user is authenticated
+    #[serde(default)]
     pub is_authenticated: bool,
     /// Connected wallet address (if authenticated)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<String>,
-}
-
-impl Default for AuthStatus {
-    fn default() -> Self {
-        Self {
-            is_authenticated: false,
-            address: None,
-        }
-    }
 }
 
 #[cfg(test)]
